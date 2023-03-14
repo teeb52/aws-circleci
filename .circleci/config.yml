@@ -13,14 +13,15 @@ jobs:
       - run: aws s3 ls
       - run: aws ec2 describe-instances
       - run: aws iam list-users
-      - run: touch inventory.txt
-      - run: echo [all] > inventory.txt
+      - run: touch inventory
+      - run: echo [all] > inventory
       - run: >-
           aws ec2 describe-instances \
+          \
            	   --query 'Reservations[*].Instances[*].PublicIpAddress' \
-               --filters "Name=tag:Project,Values=udacity" \
-               --echo text >> inventory.txt
-      - run: cat inventory.txt
+                --filters "Name=tag:Project,Values=udacity" \
+                --output text >> inventory
+      - run: cat inventory
 workflows:
   aws-cli:
     jobs:
