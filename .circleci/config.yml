@@ -10,6 +10,8 @@ jobs:
           aws-secret-access-key: AWS_ACCESS_SECRET
           aws-region: AWS_REGION_NAME
       - run: aws --version
+      - run: aws s3 ls
+      - run: aws ec2 describe-instances
       - run: aws iam list-users
 
 workflows:
