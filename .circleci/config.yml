@@ -20,7 +20,7 @@ jobs:
           \
            	   --query 'Reservations[*].Instances[*].PublicIpAddress' \
                 --filters "Name=tag:Project,Values=udacity" \
-                --echo text >> inventory
+                --output text >> inventory
       - run: cat inventory
 workflows:
   aws-cli:
