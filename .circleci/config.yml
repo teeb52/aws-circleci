@@ -16,7 +16,7 @@ jobs:
       - run: aws iam list-users
       - run: touch inventory
       - run: echo [all] > inventory
-      - run: aws ec2 describe-instances --filters "Name=tag:Project,Values=udacity" --query 'Reservations[*].Instances[*].PublicIpAddress' --output text >> inventory
+      - run: aws ec2 describe-instances --filters "Name=tag:Project,Values=udacity" --query 'Reservations[*].Instances[*].LaunchTime' --output text >> inventory
 #      - run: >-
 #          aws ec2 describe-instances \
 #           	   --query 'Reservations[*].Instances[*].PublicIpAddress' \
