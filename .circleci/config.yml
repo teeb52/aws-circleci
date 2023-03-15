@@ -17,10 +17,10 @@ jobs:
       - run: touch inventory
       - run: echo [all] > inventory
       - run: aws ec2 describe-instances --filters "Name=tag:Project,Values=udacity" --query 'Reservations[*].Instances[*].[InstanceId,InstanceType,State.Name,PublicIpAddress,LaunchTime]' --output text >> inventory
-      - run: >-
-          aws ec2 describe-instances \
-           	   --query 'Reservations[*].Instances[*].PublicIpAddress' \
-                --filters "Name=tag:Project,Values=udacity" \
+#      - run: >-
+#          aws ec2 describe-instances \
+#           	   --query 'Reservations[*].Instances[*].PublicIpAddress' \
+#                --filters "Name=tag:Project,Values=udacity" \
 #                --output text >> inventory
       - run: cat inventory
 workflows:
