@@ -8,7 +8,7 @@ jobs:
     steps:
       - checkout
       - run: aws --version
-      - run: aws iam list-users
+#      - run: aws iam list-users
       - run:
           name: Create Cloudformation Stack
           command: | 
