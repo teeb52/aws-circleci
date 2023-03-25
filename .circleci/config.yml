@@ -3,10 +3,11 @@ orbs:
   aws-cli: circleci/aws-cli@2.0
 jobs:
   create_infrastructure:
-    docker:
-      - image: amazon/aws-cli
+    executor: aws-cli/default
+#    docker:
+#      - image: amazon/aws-cli
     steps:
-#      - checkout
+      - checkout
       - aws-cli/setup:
           aws-access-key-id: AWS_ACCESS_KEY
           aws-secret-access-key: AWS_ACCESS_SECRET
