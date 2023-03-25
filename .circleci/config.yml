@@ -21,13 +21,8 @@ jobs:
               --stack-name myStack-${CIRCLE_WORKFLOW_ID:0:5} \
               --region us-east-1
       - run: aws ec2 describe-instances
-#      - aws-cli/setup:
-#          aws-access-key-id: AWS_ACCESS_KEY
-#          aws-secret-access-key: AWS_ACCESS_SECRET
-#          aws-region: AWS_REGION_NAME
-
 workflows:
   my-infra-workflows:
     jobs:
       - create_infrastructure
-#          context: aws
+          context: aws
