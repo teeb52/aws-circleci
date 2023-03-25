@@ -6,7 +6,7 @@ jobs:
     docker:
       - image: amazon/aws-cli
     steps:
-      - checkout
+#      - checkout
       - aws-cli/setup:
           aws-access-key-id: AWS_ACCESS_KEY
           aws-secret-access-key: AWS_ACCESS_SECRET
