@@ -1,0 +1,30 @@
+version: '2.1'
+orbs:
+  aws-cli: circleci/aws-cli@2.0
+jobs:
+  aws-cli-cred-setup:
+    executor: aws-cli/default
+    steps:
+      - aws-cli/setup:
+          aws-access-key-id: AWS_ACCESS_KEY
+          aws-secret-access-key: AWS_ACCESS_SECRET
+          aws-region: AWS_REGION_NAME
+      - run: aws --version
+      - run: aws s3 ls
+      - run: aws ec2 describe-instances
+      #      - run: aws ec2 describe-instances --instance-ids <instance-id> --query 'Reservations[*].Instances[*].[InstanceId,InstanceType,State.Name,PublicIpAddress,LaunchTime]'
+      - run: aws iam list-users
+      - run: touch inventory
+      - run: echo [all] > inventory
+      - run: aws ec2 describe-instances --filters "Name=tag:Project,Values=udacity" --query 'Reservations[*].Instances[*].PublicIpAddress' --output text >> inventory
+      #      - run: >-
+      #          aws ec2 describe-instances \
+      #           	   --query 'Reservations[*].Instances[*].PublicIpAddress' \
+      #                --filters "Name=tag:Project,Values=udacity" \
+      #                --output text >> inventory
+      - run: cat inventory
+workflows:
+  aws-cli:
+    jobs:
+      - aws-cli-cred-setup:
+          context: aws
