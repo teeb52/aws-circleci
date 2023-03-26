@@ -3,15 +3,18 @@ orbs:
   aws-cli: circleci/aws-cli@2.0
 jobs:
   create_infrastructure:
-    executor: aws-cli/default
-#    docker:
-#      - image: amazon/aws-cli
+#    executor: aws-cli/default
+    docker:
+      - image: amazon/aws-cli
     steps:
       - checkout
-      - aws-cli/setup:
-          aws-access-key-id: AWS_ACCESS_KEY
-          aws-secret-access-key: AWS_ACCESS_SECRET
-          aws-region: AWS_REGION_NAME
+      - run: aws configure set aws_access_key_id ${AWS_ACCESS_KEY}
+      - run: aws configure set aws-secret-access-key ${AWS_ACCESS_SECRET}
+      - run: aws configure set aws-region ${AWS_REGION_NAME}
+#      - aws-cli/setup:
+#          aws-access-key-id: AWS_ACCESS_KEY
+#          aws-secret-access-key: AWS_ACCESS_SECRET
+#          aws-region: AWS_REGION_NAME
       - run: aws --version
       - run: aws iam list-users
       - run:
@@ -26,4 +29,4 @@ workflows:
   my-infra-workflows:
     jobs:
       - create_infrastructure:
-          context: aws
+#          context: aws
