@@ -2,28 +2,44 @@ version: '2.1'
 orbs:
   aws-cli: circleci/aws-cli@2.0
 jobs:
-  create_infrastructure:
+  configure_infrastructure:
     docker:
-      - image: amazon/aws-cli
+      - image: python:3.7-alpine3.11
     steps:
       - checkout
-      - run: aws configure set aws_access_key_id ${AWS_ACCESS_KEY}
-      - run: aws configure set aws_secret_access_key ${AWS_ACCESS_SECRET}
-      - run: aws configure set aws_default_region ${AWS_REGION_NAME}
-#      - aws-cli/setup:
-#          aws-access-key-id: AWS_ACCESS_KEY
-#          aws-secret-access-key: AWS_ACCESS_SECRET
-#          aws-region: AWS_REGION_NAME
-      - run: aws --version
-      - run: aws iam list-users
+      - add_ssh_keys:
+          # You can get this ID in the section where you registered the SSH Key
+          fingerprints: [ "55:94:a6:8b:25:97:a2:81:7a:4f:de:05:cf:bd:19:62" ]
       - run:
-          name: Create Cloudformation Stack
-          command: | 
-            aws cloudformation deploy \
-              --template-file template.yml \
-              --stack-name myStack-${CIRCLE_WORKFLOW_ID:0:5} \
-              --region us-east-1
-      - run: aws ec2 describe-instances
+          name: Install Ansible
+          command: |
+            apk add --update ansible
+      - run:
+          name: Run Playbook and Configure server
+          command: |
+            ansible-playbook -i inventory main-remote.yml
+#  create_infrastructure:
+#    docker:
+#      - image: amazon/aws-cli
+#    steps:
+#      - checkout
+#      - run: aws configure set aws_access_key_id ${AWS_ACCESS_KEY}
+#      - run: aws configure set aws_secret_access_key ${AWS_ACCESS_SECRET}
+#      - run: aws configure set aws_default_region ${AWS_REGION_NAME}
+##      - aws-cli/setup:
+##          aws-access-key-id: AWS_ACCESS_KEY
+##          aws-secret-access-key: AWS_ACCESS_SECRET
+##          aws-region: AWS_REGION_NAME
+#      - run: aws --version
+#      - run: aws iam list-users
+#      - run:
+#          name: Create Cloudformation Stack
+#          command: |
+#            aws cloudformation deploy \
+#              --template-file template.yml \
+#              --stack-name myStack-${CIRCLE_WORKFLOW_ID:0:5} \
+#              --region us-east-1
+#      - run: aws ec2 describe-instances
 workflows:
   my-infra-workflows:
     jobs:
