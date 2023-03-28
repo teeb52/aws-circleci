@@ -2,21 +2,37 @@ version: '2.1'
 orbs:
   aws-cli: circleci/aws-cli@2.0
 jobs:
-  configure_infrastructure:
+  smoke_test:
     docker:
-      - image: python:3.7-alpine3.11
+      - image: alpine:latest
     steps:
-      - checkout
-      - add_ssh_keys:
-          fingerprints: [ "55:94:a6:8b:25:97:a2:81:7a:4f:de:05:cf:bd:19:62" ]
+      - run: apk add --update curl
       - run:
-          name: Install Ansible
+          name: smoke test
           command: |
-            apk add --update ansible
-      - run:
-          name: Run Playbook and Configure server
-          command: |
-            ansible-playbook -i inventory main-remote.yml
+            URL="https://blog.udacity.com/"
+            # Test if website exists
+            if curl -s --head ${URL} 
+            then
+              return 0
+            else
+              return 1
+            fi
+#  configure_infrastructure:
+#    docker:
+#      - image: python:3.7-alpine3.11
+#    steps:
+#      - checkout
+#      - add_ssh_keys:
+#          fingerprints: [ "55:94:a6:8b:25:97:a2:81:7a:4f:de:05:cf:bd:19:62" ]
+#      - run:
+#          name: Install Ansible
+#          command: |
+#            apk add --update ansible
+#      - run:
+#          name: Run Playbook and Configure server
+#          command: |
+#            ansible-playbook -i inventory main-remote.yml
 #  create_infrastructure:
 #    docker:
 #      - image: amazon/aws-cli
@@ -42,6 +58,7 @@ jobs:
 workflows:
   my-infra-workflows:
     jobs:
-      - configure_infrastructure
+      - smoke_test
+#      - configure_infrastructure
 #      - create_infrastructure
 #          context: aws
