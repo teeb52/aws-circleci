@@ -10,7 +10,7 @@ jobs:
       - run:
           name: smoke test
           command: |
-            URL="https://blog.udacity.com/"
+            URL="https://blog.udakity.com/"
             # Test if website exists
             if curl -s --head ${URL} 
             then
