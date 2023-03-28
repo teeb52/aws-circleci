@@ -1,6 +1,17 @@
 version: '2.1'
 orbs:
   aws-cli: circleci/aws-cli@2.0
+commands:
+  # Exercise - Rollback
+  destroy_environment:
+    steps:
+      - run:
+          name: Destroy environment
+          # ${CIRCLE_WORKFLOW_ID} is a Built-in environment variable
+          # ${CIRCLE_WORKFLOW_ID:0:5} takes the first 5 chars of the variable CIRCLE_CI_WORKFLOW_ID
+          when: on_fail
+          command: |
+            aws cloudformation delete-stack --stack-name myStack-${CIRCLE_WORKFLOW_ID:0:5}
 jobs:
   smoke_test:
     docker:
@@ -12,7 +23,7 @@ jobs:
           command: |
             URL="https://blog.udakity.com/"
             # Test if website exists
-            if curl -s --head ${URL} 
+            if curl -s --head ${URL}
             then
               return 0
             else
@@ -33,32 +44,35 @@ jobs:
 #          name: Run Playbook and Configure server
 #          command: |
 #            ansible-playbook -i inventory main-remote.yml
-#  create_infrastructure:
-#    docker:
-#      - image: amazon/aws-cli
-#    steps:
-#      - checkout
-#      - run: aws configure set aws_access_key_id ${AWS_ACCESS_KEY}
-#      - run: aws configure set aws_secret_access_key ${AWS_ACCESS_SECRET}
-#      - run: aws configure set aws_default_region ${AWS_REGION_NAME}
-##      - aws-cli/setup:
-##          aws-access-key-id: AWS_ACCESS_KEY
-##          aws-secret-access-key: AWS_ACCESS_SECRET
-##          aws-region: AWS_REGION_NAME
-#      - run: aws --version
-#      - run: aws iam list-users
-#      - run:
-#          name: Create Cloudformation Stack
-#          command: |
-#            aws cloudformation deploy \
-#              --template-file template.yml \
-#              --stack-name myStack-${CIRCLE_WORKFLOW_ID:0:5} \
-#              --region us-east-1
-#      - run: aws ec2 describe-instances
+  create_infrastructure:
+    docker:
+      - image: amazon/aws-cli
+    steps:
+      - checkout
+      - run: aws configure set aws_access_key_id ${AWS_ACCESS_KEY}
+      - run: aws configure set aws_secret_access_key ${AWS_ACCESS_SECRET}
+      - run: aws configure set aws_default_region ${AWS_REGION_NAME}
+#      - aws-cli/setup:
+#          aws-access-key-id: AWS_ACCESS_KEY
+#          aws-secret-access-key: AWS_ACCESS_SECRET
+#          aws-region: AWS_REGION_NAME
+      - run: aws --version
+      - run: aws iam list-users
+      - run:
+          name: Create Cloudformation Stack
+          command: |
+            aws cloudformation deploy \
+              --template-file template.yml \
+              --stack-name myStack-${CIRCLE_WORKFLOW_ID:0:5} \
+              --region us-east-1
+      - run: aws ec2 describe-instances
+      - destroy_environment
 workflows:
   my-infra-workflows:
     jobs:
-      - smoke_test
+      - create_infrastructure
+      - smoke_test:
+          requires:
+              - create_infrastructure
 #      - configure_infrastructure
-#      - create_infrastructure
 #          context: aws
