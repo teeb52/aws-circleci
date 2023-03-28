@@ -20,8 +20,9 @@ jobs:
       - run:
           name: smoke test
           command: |
-            URL="https://blog.udakity.com/"
+#            URL="https://blog.udakity.com/"
             # Test if website exists
+            URL=$(aws ec2 describe-instances --query 'Reservations[*].Instances[*].PublicDnsName')
             if curl -s --head ${URL}
             then
               return 0
