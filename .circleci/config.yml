@@ -20,7 +20,8 @@ jobs:
       - run:
           name: smoke test
           command: |
-            URL="https://blog.udakity.com/"
+#            URL="https://blog.udakity.com/"
+            URL=$(aws ec2 describe-instances --query 'Reservations[*].Instances[*].PublicDnsName')
             # Test if website exists
             if curl -s --head ${URL}
             then
@@ -64,7 +65,7 @@ jobs:
               --template-file template.yml \
               --stack-name myStack-${CIRCLE_WORKFLOW_ID:0:5} \
               --region us-east-1
-      - run: aws ec2 describe-instances --region us-east-1
+#      - run: aws ec2 describe-instances --region us-east-1
       - destroy_environment
 workflows:
   my-infra-workflows:
