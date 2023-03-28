@@ -43,6 +43,6 @@ jobs:
 workflows:
   my-infra-workflows:
     jobs:
-      - create_infrastructure
-#          context: aws
+      - configure_infrastructure
+#      - create_infrastructure
 #          context: aws
