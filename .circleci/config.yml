@@ -2,18 +2,17 @@ version: '2.1'
 orbs:
   aws-cli: circleci/aws-cli@2.0
 commands:
-  # Exercise - Rollback
+  # Command for roll-back
   destroy_environment:
     steps:
       - run:
           name: Destroy environment
-          # ${CIRCLE_WORKFLOW_ID} is a Built-in environment variable
-          # ${CIRCLE_WORKFLOW_ID:0:5} takes the first 5 chars of the variable CIRCLE_CI_WORKFLOW_ID
           when: on_fail
           command: |
             aws cloudformation delete-stack --stack-name myStack-${CIRCLE_WORKFLOW_ID:0:5} --region us-east-1
 jobs:
   smoke_test:
+#    smoke test if website exists
     docker:
       - image: alpine:latest
     steps:
@@ -75,4 +74,3 @@ workflows:
           requires:
               - create_infrastructure
 #      - configure_infrastructure
-#          context: aws
