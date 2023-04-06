@@ -115,33 +115,36 @@ jobs:
 #          name: Run Playbook and Configure server
 #          command: |
 #            ansible-playbook -i inventory main-remote.yml
-#  create_infrastructure:
-#    docker:
-#      - image: amazon/aws-cli
-#    steps:
-#      - checkout
+  create_infrastructure:
+    docker:
+      - image: amazon/aws-cli
+    steps:
+      - checkout
 #      - run: aws configure set aws_access_key_id ${AWS_ACCESS_KEY}
 #      - run: aws configure set aws_secret_access_key ${AWS_ACCESS_SECRET}
 #      - run: aws configure set aws_default_region ${AWS_REGION_NAME}
-##      - aws-cli/setup:
-##          aws-access-key-id: AWS_ACCESS_KEY
-##          aws-secret-access-key: AWS_ACCESS_SECRET
-##          aws-region: AWS_REGION_NAME
-#      - run: aws --version
-#      - run: aws iam list-users
-#      - run:
-#          name: Create Cloudformation Stack
-#          command: |
-#            aws cloudformation deploy \
-#              --template-file template.yml \
-#              --stack-name myStack-${CIRCLE_WORKFLOW_ID:0:5} \
-#              --region us-east-1
-##      - run: aws ec2 describe-instances --region us-east-1
+      - aws-cli/setup:
+          aws-access-key-id: AWS_ACCESS_KEY
+          aws-secret-access-key: AWS_ACCESS_SECRET
+          aws-region: AWS_REGION_NAME
+      - run: aws --version
+      - run: aws iam list-users
+      - run:
+          name: Create Cloudformation Stack
+          command: |
+            aws cloudformation deploy \
+              --template-file template.yml \
+              --stack-name myStack-${CIRCLE_WORKFLOW_ID:0:5} \
+              --region us-east-1
+      - run: aws ec2 describe-instances
 #      - destroy_environment
 workflows:
   my-infra-workflows:
     jobs:
-      - create_and_deploy_front_end
+      - create_infrastructure
+      - create_and_deploy_front_end:
+          requires:
+            - create_infrastructure
       - promote_to_production:
           requires:
             - create_and_deploy_front_end
@@ -152,7 +155,7 @@ workflows:
           requires:
             - get_last_deployment_id
             - promote_to_production
-#      - create_infrastructure
+
 #      - configure_infrastructure:
 #          requires:
 #            - create_infrastructure
