@@ -3,86 +3,158 @@ orbs:
   aws-cli: circleci/aws-cli@2.0
 commands:
   # Command for roll-back
-  destroy_environment:
-    steps:
-      - run:
-          name: Destroy environment
-          when: on_fail
-          command: |
-            aws cloudformation delete-stack --stack-name myStack-${CIRCLE_WORKFLOW_ID:0:5} --region us-east-1
+#  destroy_environment:
+#    steps:
+#      - run:
+#          name: Destroy environment
+#          when: on_fail
+#          command: |
+#            aws cloudformation delete-stack --stack-name myStack-${CIRCLE_WORKFLOW_ID:0:5} --region us-east-1
 jobs:
-  smoke_test:
-#    smoke test if website exists
-#    environment:
-#      URL: $(aws ec2 describe-instances --query 'Reservations[*].Instances[*].PublicDnsName' --output text)
-    docker:
-      - image: alpine:latest
-    steps:
-      - run: apk add --update curl
-      - run:
-          name: Retrieve EC2 public DNS
-          command: |
-            export URL=$(aws ec2 describe-instances --query 'Reservations[*].Instances[*].PublicIpAddress' --output text)
-            echo "URL=$URL" >> $BASH_ENV
-      - run:
-          name: smoke test
-          command: |
-#            URL="https://blog.udakity.com/"
-            # Test if website exists
-            if curl -s --head ${URL}:3000:
-            then:
-              return 0
-            else:
-              return 1
-            fi
-  configure_infrastructure:
-    docker:
-      - image: python:3.7-alpine3.11
-    steps:
-      - checkout
-      - run: aws ec2 describe-instances --query 'Reservations[*].Instances[*].PublicIpAddress' --output text >> inventory
-      - add_ssh_keys:
-          fingerprints: [ "55:94:a6:8b:25:97:a2:81:7a:4f:de:05:cf:bd:19:62" ]
-      - run:
-          name: Install Ansible
-          command: |
-            apk add --update ansible
-      - run:
-          name: Run Playbook and Configure server
-          command: |
-            ansible-playbook -i inventory main-remote.yml
-  create_infrastructure:
+  # Destroy the previous production version's S3 bucket and CloudFormation stack.
+  clean_up_old_front_end:
     docker:
       - image: amazon/aws-cli
     steps:
       - checkout
-      - run: aws configure set aws_access_key_id ${AWS_ACCESS_KEY}
-      - run: aws configure set aws_secret_access_key ${AWS_ACCESS_SECRET}
-      - run: aws configure set aws_default_region ${AWS_REGION_NAME}
-#      - aws-cli/setup:
-#          aws-access-key-id: AWS_ACCESS_KEY
-#          aws-secret-access-key: AWS_ACCESS_SECRET
-#          aws-region: AWS_REGION_NAME
-      - run: aws --version
-      - run: aws iam list-users
+      - run: yum install -y tar gzip
+      - attach_workspace:
+          at: ~/
       - run:
-          name: Create Cloudformation Stack
+          name: Destroy the previous S3 bucket and CloudFormation stack.
+          # Use $OldBucketID environment variable or mybucket644752792305 below.
+          # Similarly, you can create and use $OldStackID environment variable in place of production-distro
+          command: |
+            export OldBucketID=$(cat ~/textfile.txt)
+            aws s3 rm "s3://${OldBucketID}" --recursive
+  # Executes the cloudfront.yml template that will modify the existing CloudFront Distribution, change its target from the old bucket to the new bucket - `mybucket-${CIRCLE_WORKFLOW_ID:0:7}`.
+  # Notice here we use the stack name `production-distro` which is the same name we used while deploying to the S3 bucket manually.
+  promote_to_production:
+    docker:
+      - image: amazon/aws-cli
+    steps:
+      - checkout
+      - run:
+          name: Execute cloudfront.yml
           command: |
             aws cloudformation deploy \
-              --template-file template.yml \
-              --stack-name myStack-${CIRCLE_WORKFLOW_ID:0:5} \
-              --region us-east-1
-#      - run: aws ec2 describe-instances --region us-east-1
-      - destroy_environment
+            --template-file cloudfront.yml \
+            --stack-name production-distro \
+            --parameter-overrides PipelineID="mybucket-${CIRCLE_WORKFLOW_ID:0:7}"
+  # Fetch and save the pipeline ID (bucket ID) responsible for the last release.
+  get_last_deployment_id:
+    docker:
+      - image: amazon/aws-cli
+    steps:
+      - checkout
+      - run: yum install -y tar gzip
+      - run:
+          name: Fetch and save the old pipeline ID (bucket name) responsible for the last release.
+          command: |
+            aws cloudformation \
+            list-exports --query "Exports[?Name==\`PipelineID\`].Value" \
+            --no-paginate --output text > ~/textfile.txt
+      - persist_to_workspace:
+          root: ~/
+          paths:
+            - textfile.txt
+  # Executes the bucket.yml - Deploy an S3 bucket, and interface with that bucket to synchronize the files between local and the bucket.
+  # Note that the `--parameter-overrides` let you specify a value that override parameter value in the bucket.yml template file.
+  create_and_deploy_front_end:
+    docker:
+      - image: amazon/aws-cli
+    steps:
+      - checkout
+      - run:
+          name: Execute bucket.yml - Create Cloudformation Stack
+          command: |
+            aws cloudformation deploy \
+            --template-file bucket.yml \
+            --stack-name stack-create-bucket-${CIRCLE_WORKFLOW_ID:0:5} \
+            --parameter-overrides MyBucketName="mybucket-${CIRCLE_WORKFLOW_ID:0:5}"
+      #upload all contents of the current directory to the S3 bucket
+      - run: aws s3 sync . s3://mybucket-${CIRCLE_WORKFLOW_ID:0:5} --delete
+#  smoke_test:
+##    smoke test if website exists
+##    environment:
+##      URL: $(aws ec2 describe-instances --query 'Reservations[*].Instances[*].PublicDnsName' --output text)
+#    docker:
+#      - image: alpine:latest
+#    steps:
+#      - run: apk add --update curl
+##      - run:
+##          name: Retrieve EC2 public DNS
+##          command: |
+##            export URL=$(aws ec2 describe-instances --query 'Reservations[*].Instances[*].PublicIpAddress' --output text)
+##            echo "URL=$URL" >> $BASH_ENV
+#      - run:
+#          name: smoke test
+#          command: |
+#            URL="https://blog.udacity.com/"
+##            Test if website exists
+#            if curl -s --head ${URL}
+#            then
+#              return 0
+#            else
+#              return 1
+#            fi
+#  configure_infrastructure:
+#    docker:
+#      - image: python:3.7-alpine3.11
+#    steps:
+#      - checkout
+#      - run: aws ec2 describe-instances --query 'Reservations[*].Instances[*].PublicIpAddress' --output text >> inventory
+#      - add_ssh_keys:
+#          fingerprints: [ "55:94:a6:8b:25:97:a2:81:7a:4f:de:05:cf:bd:19:62" ]
+#      - run:
+#          name: Install Ansible
+#          command: |
+#            apk add --update ansible
+#      - run:
+#          name: Run Playbook and Configure server
+#          command: |
+#            ansible-playbook -i inventory main-remote.yml
+#  create_infrastructure:
+#    docker:
+#      - image: amazon/aws-cli
+#    steps:
+#      - checkout
+#      - run: aws configure set aws_access_key_id ${AWS_ACCESS_KEY}
+#      - run: aws configure set aws_secret_access_key ${AWS_ACCESS_SECRET}
+#      - run: aws configure set aws_default_region ${AWS_REGION_NAME}
+##      - aws-cli/setup:
+##          aws-access-key-id: AWS_ACCESS_KEY
+##          aws-secret-access-key: AWS_ACCESS_SECRET
+##          aws-region: AWS_REGION_NAME
+#      - run: aws --version
+#      - run: aws iam list-users
+#      - run:
+#          name: Create Cloudformation Stack
+#          command: |
+#            aws cloudformation deploy \
+#              --template-file template.yml \
+#              --stack-name myStack-${CIRCLE_WORKFLOW_ID:0:5} \
+#              --region us-east-1
+##      - run: aws ec2 describe-instances --region us-east-1
+#      - destroy_environment
 workflows:
   my-infra-workflows:
     jobs:
-      - create_infrastructure
-      - configure_infrastructure:
+      - create_and_deploy_front_end
+      - promote_to_production:
           requires:
-            - create_infrastructure
-      - smoke_test:
+            - create_and_deploy_front_end
+      - get_last_deployment_id
+      - clean_up_old_front_end:
           requires:
-              - create_infrastructure
-              - configure_infrastructure
+            - get_last_deployment_id
+            - promote_to_production
+#      - create_infrastructure
+#      - configure_infrastructure:
+#          requires:
+#            - create_infrastructure
+#      - smoke_test:
+#          requires:
+#              - create_infrastructure
+#              - configure_infrastructure
 #      - configure_infrastructure
