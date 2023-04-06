@@ -40,7 +40,7 @@ jobs:
             aws cloudformation deploy \
             --template-file cloudfront.yml \
             --stack-name production-distro \
-            --parameter-overrides PipelineID="mybucket-${CIRCLE_WORKFLOW_ID:0:7}"
+            --parameter-overrides PipelineID="mybucket-${CIRCLE_WORKFLOW_ID:0:5}"
   # Fetch and save the pipeline ID (bucket ID) responsible for the last release.
   get_last_deployment_id:
     docker:
@@ -65,6 +65,7 @@ jobs:
       - image: amazon/aws-cli
     steps:
       - checkout
+      - run: aws iam list-users
       - run:
           name: Execute bucket.yml - Create Cloudformation Stack
           command: |
@@ -144,7 +145,9 @@ workflows:
       - promote_to_production:
           requires:
             - create_and_deploy_front_end
-      - get_last_deployment_id
+      - get_last_deployment_id:
+          requires:
+            - create_and_deploy_front_end
       - clean_up_old_front_end:
           requires:
             - get_last_deployment_id
