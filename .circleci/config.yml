@@ -123,7 +123,7 @@ jobs:
 #      - run: aws configure set aws_access_key_id ${AWS_ACCESS_KEY}
 #      - run: aws configure set aws_secret_access_key ${AWS_ACCESS_SECRET}
 #      - run: aws configure set aws_default_region ${AWS_REGION_NAME}
-      - run: sudo yum install unzip
+      - run: su yum install unzip
       - aws-cli/setup:
           aws-access-key-id: AWS_ACCESS_KEY
           aws-secret-access-key: AWS_ACCESS_SECRET
