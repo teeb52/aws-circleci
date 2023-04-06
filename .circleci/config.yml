@@ -27,6 +27,7 @@ jobs:
           command: |
             export OldBucketID=$(cat ~/textfile.txt)
             aws s3 rm "s3://${OldBucketID}" --recursive
+            --profile udacitycd
   # Executes the cloudfront.yml template that will modify the existing CloudFront Distribution, change its target from the old bucket to the new bucket - `mybucket-${CIRCLE_WORKFLOW_ID:0:7}`.
   # Notice here we use the stack name `production-distro` which is the same name we used while deploying to the S3 bucket manually.
   promote_to_production:
@@ -41,6 +42,7 @@ jobs:
             --template-file cloudfront.yml \
             --stack-name production-distro \
             --parameter-overrides PipelineID="mybucket-${CIRCLE_WORKFLOW_ID:0:5}"
+            --profile udacitycd
   # Fetch and save the pipeline ID (bucket ID) responsible for the last release.
   get_last_deployment_id:
     docker:
@@ -52,7 +54,7 @@ jobs:
           name: Fetch and save the old pipeline ID (bucket name) responsible for the last release.
           command: |
             aws cloudformation \
-            list-exports --query "Exports[?Name==\`PipelineID\`].Value" \
+            list-exports --profile udacitycd --query "Exports[?Name==\`PipelineID\`].Value" \
             --no-paginate --output text > ~/textfile.txt
       - persist_to_workspace:
           root: ~/
@@ -73,6 +75,8 @@ jobs:
             --template-file bucket.yml \
             --stack-name stack-create-bucket-${CIRCLE_WORKFLOW_ID:0:5} \
             --parameter-overrides MyBucketName="mybucket-${CIRCLE_WORKFLOW_ID:0:5}"
+            --profile udacitycd
+
       #upload all contents of the current directory to the S3 bucket
       - run: aws s3 sync . s3://mybucket-${CIRCLE_WORKFLOW_ID:0:5} --delete
 #  smoke_test:
@@ -120,9 +124,9 @@ jobs:
       - image: amazon/aws-cli
     steps:
       - checkout
-      - run: aws configure set aws_access_key_id ${AWS_ACCESS_KEY}
-      - run: aws configure set aws_secret_access_key ${AWS_ACCESS_SECRET}
-      - run: aws configure set default.region ${AWS_REGION_NAME}
+      - run: aws configure set --profile udacitycd aws_access_key_id ${AWS_ACCESS_KEY}
+      - run: aws configure set --profile udacitycd aws_secret_access_key ${AWS_ACCESS_SECRET}
+      - run: aws configure set --profile udacitycd default.region ${AWS_REGION_NAME}
 #      - aws-cli/setup:
 #          aws-access-key-id: AWS_ACCESS_KEY
 #          aws-secret-access-key: AWS_ACCESS_SECRET
@@ -135,8 +139,8 @@ jobs:
             aws cloudformation deploy \
               --template-file template.yml \
               --stack-name myStack-${CIRCLE_WORKFLOW_ID:0:5} \
-              --region us-east-1
-      - run: aws ec2 describe-instances --region us-east-1
+              --profile udacitycd
+      - run: aws ec2 describe-instances --profile udacitycd
 #      - destroy_environment
 workflows:
   my-infra-workflows:
