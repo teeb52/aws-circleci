@@ -132,7 +132,7 @@ jobs:
 #          aws-secret-access-key: AWS_ACCESS_SECRET
 #          aws-region: AWS_REGION_NAME
       - run: aws --version
-      - run: aws iam list-users --profile udacitycd
+      - run: aws iam list-users
       - run:
           name: Create Cloudformation Stack
           command: |
