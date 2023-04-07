@@ -140,7 +140,7 @@ jobs:
               --template-file template.yml \
               --stack-name myStack-${CIRCLE_WORKFLOW_ID:0:5} \
               --region us-east-1
-      - run: aws ec2 describe-instances --profile udacitycd
+      - run: aws ec2 describe-instances
 #      - destroy_environment
 workflows:
   my-infra-workflows:
